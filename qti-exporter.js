@@ -139,12 +139,6 @@ ${questions.map((q, idx) => this.generateQuestion30(q, idx)).join('\n')}
         
         return xml;
     }
-    </qti-assessment-section>
-  </qti-test-part>
-</qti-assessment-test>`;
-        
-        return xml;
-    }
 
     /**
      * Generate QTI 2.1 question item reference
