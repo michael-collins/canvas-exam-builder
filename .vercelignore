@@ -1,0 +1,9 @@
+.venv/
+*.pyc
+__pycache__/
+exam_formatted.docx
+test-parse.txt
+test-qti-package.zip
+test-qti21-canvas.zip
+.DS_Store
+

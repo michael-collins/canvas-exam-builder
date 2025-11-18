@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QTI Package Verifier</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .verify-zone {
+            border: 3px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #f7fafc;
+            margin: 20px 0;
+        }
+        .verify-zone:hover {
+            border-color: #667eea;
+            background-color: #edf2f7;
+        }
+        .verification-results {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .check-item {
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .check-pass {
+            background: #c6f6d5;
+            border: 1px solid #9ae6b4;
+        }
+        .check-fail {
+            background: #fed7d7;
+            border: 1px solid #fc8181;
+        }
+        .check-icon {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        pre {
+            background: #2d3748;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        .file-list {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .file-list li {
+            padding: 5px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>QTI Package Verifier</h1>
+            <p>Verify your QTI .zip file before uploading to Canvas</p>
+            <a href="index.html" class="sample-link">← Back to Quiz Builder</a>
+        </header>
+
+        <main>
+            <div id="verifyZone" class="verify-zone">
+                <div class="drop-zone-content">
+                    <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="drop-zone-text">Drop your QTI .zip file here to verify</p>
+                    <input type="file" id="zipInput" accept=".zip" hidden>
+                </div>
+            </div>
+
+            <div id="results" style="display: none;">
+                <div class="verification-results">
+                    <h3>Verification Results</h3>
+                    <div id="checksContainer"></div>
+                    
+                    <div id="filesContainer" style="display: none;">
+                        <h4 style="margin-top: 20px;">Files in Package:</h4>
+                        <div class="file-list">
+                            <ul id="filesList"></ul>
+                        </div>
+                    </div>
+
+                    <div id="xmlPreview" style="display: none;">
+                        <h4 style="margin-top: 20px;">QTI XML Preview:</h4>
+                        <pre id="xmlContent"></pre>
+                    </div>
+
+                    <div id="manifestPreview" style="display: none;">
+                        <h4 style="margin-top: 20px;">Manifest Preview:</h4>
+                        <pre id="manifestContent"></pre>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        const verifyZone = document.getElementById('verifyZone');
+        const zipInput = document.getElementById('zipInput');
+        const results = document.getElementById('results');
+        const checksContainer = document.getElementById('checksContainer');
+        const filesContainer = document.getElementById('filesContainer');
+        const filesList = document.getElementById('filesList');
+        const xmlPreview = document.getElementById('xmlPreview');
+        const xmlContent = document.getElementById('xmlContent');
+        const manifestPreview = document.getElementById('manifestPreview');
+        const manifestContent = document.getElementById('manifestContent');
+
+        verifyZone.addEventListener('click', () => zipInput.click());
+        zipInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) verifyZip(e.target.files[0]);
+        });
+
+        verifyZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            verifyZone.classList.add('drag-over');
+        });
+
+        verifyZone.addEventListener('dragleave', () => {
+            verifyZone.classList.remove('drag-over');
+        });
+
+        verifyZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            verifyZone.classList.remove('drag-over');
+            if (e.dataTransfer.files[0]) verifyZip(e.dataTransfer.files[0]);
+        });
+
+        async function verifyZip(file) {
+            checksContainer.innerHTML = '';
+            results.style.display = 'block';
+            
+            const checks = [];
+            
+            // Check 1: Is it a zip file?
+            checks.push({
+                name: 'File is a .zip archive',
+                pass: file.name.endsWith('.zip'),
+                message: file.name.endsWith('.zip') ? 'Valid zip file' : 'File must be a .zip'
+            });
+
+            try {
+                const zip = await JSZip.loadAsync(file);
+                const files = Object.keys(zip.files);
+                
+                // Check 2: Contains imsmanifest.xml
+                const hasManifest = files.includes('imsmanifest.xml');
+                checks.push({
+                    name: 'Contains imsmanifest.xml',
+                    pass: hasManifest,
+                    message: hasManifest ? 'Manifest file found' : 'Missing imsmanifest.xml'
+                });
+
+                // Check 3: Contains at least one .xml file
+                const xmlFiles = files.filter(f => f.endsWith('.xml') && f !== 'imsmanifest.xml');
+                checks.push({
+                    name: 'Contains QTI assessment XML',
+                    pass: xmlFiles.length > 0,
+                    message: xmlFiles.length > 0 ? `Found ${xmlFiles.length} assessment file(s)` : 'No assessment XML files found'
+                });
+
+                // Check 4: Validate manifest XML
+                if (hasManifest) {
+                    const manifestText = await zip.file('imsmanifest.xml').async('text');
+                    manifestContent.textContent = formatXml(manifestText);
+                    manifestPreview.style.display = 'block';
+                    
+                    const isValidXml = validateXml(manifestText);
+                    checks.push({
+                        name: 'Manifest is valid XML',
+                        pass: isValidXml,
+                        message: isValidXml ? 'XML structure is valid' : 'Invalid XML structure'
+                    });
+
+                    // Check for required manifest elements
+                    const hasResources = manifestText.includes('<resources>');
+                    checks.push({
+                        name: 'Manifest contains resources',
+                        pass: hasResources,
+                        message: hasResources ? 'Resources section found' : 'Missing resources section'
+                    });
+                }
+
+                // Check 5: Validate QTI XML
+                if (xmlFiles.length > 0) {
+                    const qtiText = await zip.file(xmlFiles[0]).async('text');
+                    xmlContent.textContent = formatXml(qtiText);
+                    xmlPreview.style.display = 'block';
+                    
+                    const isValidXml = validateXml(qtiText);
+                    checks.push({
+                        name: 'QTI XML is valid',
+                        pass: isValidXml,
+                        message: isValidXml ? 'XML structure is valid' : 'Invalid XML structure'
+                    });
+
+                    // Check for QTI elements
+                    const hasQuestestinterop = qtiText.includes('questestinterop');
+                    checks.push({
+                        name: 'Contains QTI questestinterop',
+                        pass: hasQuestestinterop,
+                        message: hasQuestestinterop ? 'QTI root element found' : 'Missing questestinterop element'
+                    });
+
+                    const hasAssessment = qtiText.includes('<assessment');
+                    checks.push({
+                        name: 'Contains assessment element',
+                        pass: hasAssessment,
+                        message: hasAssessment ? 'Assessment element found' : 'Missing assessment element'
+                    });
+
+                    const hasItems = qtiText.includes('<item');
+                    checks.push({
+                        name: 'Contains question items',
+                        pass: hasItems,
+                        message: hasItems ? 'Question items found' : 'No question items found'
+                    });
+                }
+
+                // Display file list
+                filesContainer.style.display = 'block';
+                filesList.innerHTML = files.map(f => `<li>${f}</li>`).join('');
+
+            } catch (error) {
+                checks.push({
+                    name: 'Can read zip file',
+                    pass: false,
+                    message: 'Error reading zip: ' + error.message
+                });
+            }
+
+            // Display results
+            displayChecks(checks);
+        }
+
+        function displayChecks(checks) {
+            const allPassed = checks.every(c => c.pass);
+            
+            checksContainer.innerHTML = checks.map(check => `
+                <div class="check-item ${check.pass ? 'check-pass' : 'check-fail'}">
+                    <span class="check-icon">${check.pass ? '✓' : '✗'}</span>
+                    <div>
+                        <strong>${check.name}</strong><br>
+                        <small>${check.message}</small>
+                    </div>
+                </div>
+            `).join('');
+
+            if (allPassed) {
+                checksContainer.innerHTML += `
+                    <div class="check-item check-pass" style="margin-top: 20px; font-size: 1.1rem;">
+                        <span class="check-icon">🎉</span>
+                        <strong>Package is valid and ready for Canvas import!</strong>
+                    </div>
+                `;
+            }
+        }
+
+        function validateXml(xmlString) {
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(xmlString, 'text/xml');
+                const errors = doc.getElementsByTagName('parsererror');
+                return errors.length === 0;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function formatXml(xml) {
+            // Simple formatting for display
+            return xml.split('<').join('\n<').trim();
+        }
+    </script>
+</body>
+</html>
