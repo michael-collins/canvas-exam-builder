@@ -113,6 +113,13 @@
         </main>
     </div>
 
+    <a href="https://github.com/michael-collins/canvas-exam-builder" target="_blank" rel="noopener noreferrer" class="github-link">
+        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        GitHub
+    </a>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
         const verifyZone = document.getElementById('verifyZone');
@@ -201,7 +208,7 @@
                     });
                 }
 
-                // Check 5: Validate QTI XML
+                // Check 5: Validate QTI XML and detect version
                 if (xmlFiles.length > 0) {
                     const qtiText = await zip.file(xmlFiles[0]).async('text');
                     xmlContent.textContent = formatXml(qtiText);
@@ -214,27 +221,84 @@
                         message: isValidXml ? 'XML structure is valid' : 'Invalid XML structure'
                     });
 
-                    // Check for QTI elements
-                    const hasQuestestinterop = qtiText.includes('questestinterop');
+                    // Detect QTI version
+                    let qtiVersion = 'Unknown';
+                    if (qtiText.includes('imsqti_v2p1') || qtiText.includes('ims_qtiasiv1p2')) {
+                        if (qtiText.includes('imsqti_v2p1')) {
+                            qtiVersion = 'QTI 2.1';
+                        } else if (qtiText.includes('imsqti_v2p2')) {
+                            qtiVersion = 'QTI 2.2';
+                        } else if (qtiText.includes('imsqti_v3p0')) {
+                            qtiVersion = 'QTI 3.0';
+                        } else {
+                            qtiVersion = 'QTI 1.2';
+                        }
+                    } else if (qtiText.includes('imsqti_v2p2')) {
+                        qtiVersion = 'QTI 2.2';
+                    } else if (qtiText.includes('imsqti_v3p0') || qtiText.includes('qti-assessment')) {
+                        qtiVersion = 'QTI 3.0';
+                    } else if (qtiText.includes('ims_qtiasiv1p2')) {
+                        qtiVersion = 'QTI 1.2';
+                    }
+
                     checks.push({
-                        name: 'Contains QTI questestinterop',
-                        pass: hasQuestestinterop,
-                        message: hasQuestestinterop ? 'QTI root element found' : 'Missing questestinterop element'
+                        name: 'QTI Version Detected',
+                        pass: qtiVersion !== 'Unknown',
+                        message: qtiVersion
                     });
 
-                    const hasAssessment = qtiText.includes('<assessment');
-                    checks.push({
-                        name: 'Contains assessment element',
-                        pass: hasAssessment,
-                        message: hasAssessment ? 'Assessment element found' : 'Missing assessment element'
-                    });
+                    // Check for QTI elements based on version
+                    if (qtiVersion === 'QTI 3.0') {
+                        const hasQtiAssessment = qtiText.includes('qti-assessment-test') || qtiText.includes('qti-assessment-item');
+                        checks.push({
+                            name: 'Contains QTI 3.0 assessment',
+                            pass: hasQtiAssessment,
+                            message: hasQtiAssessment ? 'QTI 3.0 assessment elements found' : 'Missing QTI 3.0 assessment elements'
+                        });
 
-                    const hasItems = qtiText.includes('<item');
-                    checks.push({
-                        name: 'Contains question items',
-                        pass: hasItems,
-                        message: hasItems ? 'Question items found' : 'No question items found'
-                    });
+                        const hasItems = qtiText.includes('qti-choice-interaction') || qtiText.includes('qti-assessment-item');
+                        checks.push({
+                            name: 'Contains question items',
+                            pass: hasItems,
+                            message: hasItems ? 'Question items found' : 'No question items found'
+                        });
+                    } else if (qtiVersion.startsWith('QTI 2.')) {
+                        const hasAssessment = qtiText.includes('<assessmentTest') || qtiText.includes('<assessmentItem');
+                        checks.push({
+                            name: 'Contains assessment element',
+                            pass: hasAssessment,
+                            message: hasAssessment ? 'Assessment element found' : 'Missing assessment element'
+                        });
+
+                        const hasItems = qtiText.includes('choiceInteraction') || qtiText.includes('<assessmentItemRef');
+                        checks.push({
+                            name: 'Contains question items',
+                            pass: hasItems,
+                            message: hasItems ? 'Question items found' : 'No question items found'
+                        });
+                    } else {
+                        // QTI 1.2
+                        const hasQuestestinterop = qtiText.includes('questestinterop');
+                        checks.push({
+                            name: 'Contains QTI questestinterop',
+                            pass: hasQuestestinterop,
+                            message: hasQuestestinterop ? 'QTI root element found' : 'Missing questestinterop element'
+                        });
+
+                        const hasAssessment = qtiText.includes('<assessment');
+                        checks.push({
+                            name: 'Contains assessment element',
+                            pass: hasAssessment,
+                            message: hasAssessment ? 'Assessment element found' : 'Missing assessment element'
+                        });
+
+                        const hasItems = qtiText.includes('<item');
+                        checks.push({
+                            name: 'Contains question items',
+                            pass: hasItems,
+                            message: hasItems ? 'Question items found' : 'No question items found'
+                        });
+                    }
                 }
 
                 // Display file list

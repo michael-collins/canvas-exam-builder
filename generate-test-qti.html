@@ -5,13 +5,111 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generate Test QTI Package</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: white;
+        }
+        .container {
+            background: white;
+            color: #2d3748;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 400px;
+            text-align: center;
+        }
+        h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        button {
+            width: 100%;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .github-link {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            text-decoration: none;
+            color: #2d3748;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+        .github-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            color: #667eea;
+        }
+        .github-link svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <h2>Download Test QTI Package</h2>
+        <a href="index.html" style="display: inline-block; margin-bottom: 20px; color: #667eea; text-decoration: none; font-weight: 500;">← Back to Quiz Builder</a>
+        <label for="qtiVersion" style="display: block; margin-bottom: 8px; font-weight: 500; text-align: left;">Select QTI Version:</label>
+        <select id="qtiVersion">
+            <option value="1.2">QTI 1.2</option>
+            <option value="2.1">QTI 2.1</option>
+            <option value="2.2">QTI 2.2</option>
+            <option value="3.0">QTI 3.0</option>
+        </select>
+        <button onclick="generateAndDownload()">Generate & Download</button>
+    </div>
+
+    <a href="https://github.com/michael-collins/canvas-exam-builder" target="_blank" rel="noopener noreferrer" class="github-link">
+        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        GitHub
+    </a>
+
     <script>
-        // Generate test QTI package on page load
-        const assessmentId = 'test_assessment_123';
-        
-        const qtiContent = `<?xml version="1.0" encoding="UTF-8"?>
+        function generateAndDownload() {
+            const version = document.getElementById('qtiVersion').value;
+            const assessmentId = 'test_assessment_123';
+            
+            // QTI 1.2 Content
+            const qti12Content = `<?xml version="1.0" encoding="UTF-8"?>
 <questestinterop xmlns="http://www.imsglobal.org/xsd/ims_qtiasiv1p2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/ims_qtiasiv1p2 http://www.imsglobal.org/xsd/ims_qtiasiv1p2p1.xsd">
   <assessment ident="${assessmentId}" title="Sample Quiz">
     <qtimetadata>
@@ -79,7 +177,141 @@
   </assessment>
 </questestinterop>`;
 
-        const manifestContent = `<?xml version="1.0" encoding="UTF-8"?>
+            // QTI 2.1 Content
+            const qti21Content = `<?xml version="1.0" encoding="UTF-8"?>
+<questestinterop xmlns="http://www.imsglobal.org/xsd/imsqti_v2p1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v2p1 http://www.imsglobal.org/xsd/qti/qtiv2p1/imsqti_v2p1.xsd">
+  <assessmentTest identifier="${assessmentId}" title="Sample Quiz">
+    <outcomeDeclaration identifier="SCORE" cardinality="single" baseType="float">
+      <defaultValue>
+        <value>0</value>
+      </defaultValue>
+    </outcomeDeclaration>
+    <testPart identifier="testPart1" navigationMode="nonlinear" submissionMode="individual">
+      <assessmentSection identifier="section1" title="Quiz" visible="true">
+        <assessmentItemRef identifier="question_1" href="question_1.xml">
+          <weight identifier="SCORE" value="1"/>
+        </assessmentItemRef>
+      </assessmentSection>
+    </testPart>
+  </assessmentTest>
+</questestinterop>`;
+
+            const qti21ItemContent = `<?xml version="1.0" encoding="UTF-8"?>
+<assessmentItem xmlns="http://www.imsglobal.org/xsd/imsqti_v2p1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v2p1 http://www.imsglobal.org/xsd/qti/qtiv2p1/imsqti_v2p1.xsd" identifier="question_1" title="Question 1" adaptive="false" timeDependent="false">
+  <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="identifier">
+    <correctResponse>
+      <value>b</value>
+    </correctResponse>
+  </responseDeclaration>
+  <outcomeDeclaration identifier="SCORE" cardinality="single" baseType="float">
+    <defaultValue>
+      <value>0</value>
+    </defaultValue>
+  </outcomeDeclaration>
+  <itemBody>
+    <choiceInteraction responseIdentifier="RESPONSE" shuffle="false" maxChoices="1">
+      <prompt>What is the capital of France?</prompt>
+      <simpleChoice identifier="a">London</simpleChoice>
+      <simpleChoice identifier="b">Paris</simpleChoice>
+      <simpleChoice identifier="c">Berlin</simpleChoice>
+      <simpleChoice identifier="d">Madrid</simpleChoice>
+    </choiceInteraction>
+  </itemBody>
+  <responseProcessing template="http://www.imsglobal.org/question/qti_v2p1/rptemplates/match_correct"/>
+</assessmentItem>`;
+
+            // QTI 2.2 Content
+            const qti22Content = `<?xml version="1.0" encoding="UTF-8"?>
+<questestinterop xmlns="http://www.imsglobal.org/xsd/imsqti_v2p2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v2p2 http://www.imsglobal.org/xsd/qti/qtiv2p2/imsqti_v2p2.xsd">
+  <assessmentTest identifier="${assessmentId}" title="Sample Quiz">
+    <outcomeDeclaration identifier="SCORE" cardinality="single" baseType="float">
+      <defaultValue>
+        <value>0</value>
+      </defaultValue>
+    </outcomeDeclaration>
+    <testPart identifier="testPart1" navigationMode="nonlinear" submissionMode="individual">
+      <assessmentSection identifier="section1" title="Quiz" visible="true">
+        <assessmentItemRef identifier="question_1" href="question_1.xml">
+          <weight identifier="SCORE" value="1"/>
+        </assessmentItemRef>
+      </assessmentSection>
+    </testPart>
+  </assessmentTest>
+</questestinterop>`;
+
+            const qti22ItemContent = `<?xml version="1.0" encoding="UTF-8"?>
+<assessmentItem xmlns="http://www.imsglobal.org/xsd/imsqti_v2p2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v2p2 http://www.imsglobal.org/xsd/qti/qtiv2p2/imsqti_v2p2.xsd" identifier="question_1" title="Question 1" adaptive="false" timeDependent="false">
+  <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="identifier">
+    <correctResponse>
+      <value>b</value>
+    </correctResponse>
+  </responseDeclaration>
+  <outcomeDeclaration identifier="SCORE" cardinality="single" baseType="float">
+    <defaultValue>
+      <value>0</value>
+    </defaultValue>
+  </outcomeDeclaration>
+  <itemBody>
+    <choiceInteraction responseIdentifier="RESPONSE" shuffle="false" maxChoices="1">
+      <prompt>What is the capital of France?</prompt>
+      <simpleChoice identifier="a">London</simpleChoice>
+      <simpleChoice identifier="b">Paris</simpleChoice>
+      <simpleChoice identifier="c">Berlin</simpleChoice>
+      <simpleChoice identifier="d">Madrid</simpleChoice>
+    </choiceInteraction>
+  </itemBody>
+  <responseProcessing template="http://www.imsglobal.org/question/qti_v2p2/rptemplates/match_correct"/>
+</assessmentItem>`;
+
+            // QTI 3.0 Content
+            const qti30Content = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-test xmlns="http://www.imsglobal.org/xsd/imsqti_v3p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_v3p0.xsd" identifier="${assessmentId}" title="Sample Quiz">
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-test-part identifier="testPart1" navigation-mode="nonlinear" submission-mode="individual">
+    <qti-assessment-section identifier="section1" title="Quiz" visible="true">
+      <qti-assessment-item-ref identifier="question_1" href="question_1.xml">
+        <qti-weight identifier="SCORE" value="1"/>
+      </qti-assessment-item-ref>
+    </qti-assessment-section>
+  </qti-test-part>
+</qti-assessment-test>`;
+
+            const qti30ItemContent = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqti_v3p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_v3p0.xsd" identifier="question_1" title="Question 1" adaptive="false" time-dependent="false">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>b</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="false" max-choices="1">
+      <qti-prompt>What is the capital of France?</qti-prompt>
+      <qti-simple-choice identifier="a">London</qti-simple-choice>
+      <qti-simple-choice identifier="b">Paris</qti-simple-choice>
+      <qti-simple-choice identifier="c">Berlin</qti-simple-choice>
+      <qti-simple-choice identifier="d">Madrid</qti-simple-choice>
+    </qti-choice-interaction>
+  </qti-item-body>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct"/>
+</qti-assessment-item>`;
+
+            // Generate appropriate manifest
+            let resourceType = 'imsqti_xmlv1p2';
+            if (version === '2.1') resourceType = 'imsqti_xmlv2p1';
+            else if (version === '2.2') resourceType = 'imsqti_xmlv2p2';
+            else if (version === '3.0') resourceType = 'imsqti_xmlv3p0';
+
+            const needsSeparateItems = version !== '1.2';
+            const manifestContent = `<?xml version="1.0" encoding="UTF-8"?>
 <manifest identifier="manifest_123" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1" xmlns:lom="http://ltsc.ieee.org/xsd/imsmd_v1p2" xmlns:imsmd="http://www.imsglobal.org/xsd/imsmd_v1p2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imscp_v1p1 http://www.imsglobal.org/xsd/imscp_v1p2.xsd">
   <metadata>
     <schema>IMS Content</schema>
@@ -94,31 +326,42 @@
   </metadata>
   <organizations/>
   <resources>
-    <resource identifier="resource_${assessmentId}" type="imsqti_xmlv1p2">
+    <resource identifier="resource_${assessmentId}" type="${resourceType}">
       <file href="${assessmentId}.xml"/>
+      ${needsSeparateItems ? '<file href="question_1.xml"/>' : ''}
     </resource>
   </resources>
 </manifest>`;
 
-        // Create ZIP and trigger download
-        const zip = new JSZip();
-        zip.file(`${assessmentId}.xml`, qtiContent);
-        zip.file('imsmanifest.xml', manifestContent);
-        
-        zip.generateAsync({ type: 'blob' }).then(function(blob) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'test-qti-package.zip';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            // Create ZIP and trigger download
+            const zip = new JSZip();
             
-            // Close window after download starts
-            setTimeout(() => window.close(), 500);
-        });
+            if (version === '1.2') {
+                zip.file(`${assessmentId}.xml`, qti12Content);
+            } else if (version === '2.1') {
+                zip.file(`${assessmentId}.xml`, qti21Content);
+                zip.file('question_1.xml', qti21ItemContent);
+            } else if (version === '2.2') {
+                zip.file(`${assessmentId}.xml`, qti22Content);
+                zip.file('question_1.xml', qti22ItemContent);
+            } else if (version === '3.0') {
+                zip.file(`${assessmentId}.xml`, qti30Content);
+                zip.file('question_1.xml', qti30ItemContent);
+            }
+            
+            zip.file('imsmanifest.xml', manifestContent);
+            
+            zip.generateAsync({ type: 'blob' }).then(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `test-qti-${version}-package.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        }
     </script>
-    <p>Generating and downloading test QTI package...</p>
 </body>
 </html>

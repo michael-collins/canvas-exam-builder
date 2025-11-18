@@ -12,7 +12,7 @@ class QtiExporter {
 
     /**
      * Set QTI version
-     * @param {string} version - '1.2' or '2.1'
+     * @param {string} version - '1.2', '2.1', '2.2', or '3.0'
      */
     setVersion(version) {
         this.version = version;
@@ -30,6 +30,10 @@ class QtiExporter {
         
         if (this.version === '2.1') {
             return this.generateQTI21();
+        } else if (this.version === '2.2') {
+            return this.generateQTI22();
+        } else if (this.version === '3.0') {
+            return this.generateQTI30();
         } else {
             return this.generateQTI12();
         }
@@ -89,6 +93,60 @@ ${questions.map((q, idx) => this.generateQuestion21(q, idx)).join('\n')}
     }
 
     /**
+     * Generate QTI 2.2 XML (similar to 2.1 with schema updates)
+     */
+    generateQTI22() {
+        const { title, questions } = this.quizData;
+        
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<questestinterop xmlns="http://www.imsglobal.org/xsd/imsqti_v2p2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v2p2 http://www.imsglobal.org/xsd/qti/qtiv2p2/imsqti_v2p2.xsd">
+  <assessmentTest identifier="${this.assessmentId}" title="${this.escapeXml(title)}">
+    <outcomeDeclaration identifier="SCORE" cardinality="single" baseType="float">
+      <defaultValue>
+        <value>0</value>
+      </defaultValue>
+    </outcomeDeclaration>
+    <testPart identifier="testPart1" navigationMode="nonlinear" submissionMode="individual">
+      <assessmentSection identifier="section1" title="Quiz" visible="true">
+${questions.map((q, idx) => this.generateQuestion22(q, idx)).join('\n')}
+      </assessmentSection>
+    </testPart>
+  </assessmentTest>
+</questestinterop>`;
+        
+        return xml;
+    }
+
+    /**
+     * Generate QTI 3.0 XML (significantly different structure)
+     */
+    generateQTI30() {
+        const { title, questions } = this.quizData;
+        
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-test xmlns="http://www.imsglobal.org/xsd/imsqti_v3p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_v3p0.xsd" identifier="${this.assessmentId}" title="${this.escapeXml(title)}">
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-test-part identifier="testPart1" navigation-mode="nonlinear" submission-mode="individual">
+    <qti-assessment-section identifier="section1" title="Quiz" visible="true">
+${questions.map((q, idx) => this.generateQuestion30(q, idx)).join('\n')}
+    </qti-assessment-section>
+  </qti-test-part>
+</qti-assessment-test>`;
+        
+        return xml;
+    }
+    </qti-assessment-section>
+  </qti-test-part>
+</qti-assessment-test>`;
+        
+        return xml;
+    }
+
+    /**
      * Generate QTI 2.1 question item reference
      */
     generateQuestion21(question, index) {
@@ -97,6 +155,28 @@ ${questions.map((q, idx) => this.generateQuestion21(q, idx)).join('\n')}
         return `        <assessmentItemRef identifier="${questionId}" href="${questionId}.xml">
           <weight identifier="SCORE" value="${question.points || 1}"/>
         </assessmentItemRef>`;
+    }
+
+    /**
+     * Generate QTI 2.2 question item reference
+     */
+    generateQuestion22(question, index) {
+        const questionId = question.id || `question_${index + 1}`;
+        
+        return `        <assessmentItemRef identifier="${questionId}" href="${questionId}.xml">
+          <weight identifier="SCORE" value="${question.points || 1}"/>
+        </assessmentItemRef>`;
+    }
+
+    /**
+     * Generate QTI 3.0 question item reference
+     */
+    generateQuestion30(question, index) {
+        const questionId = question.id || `question_${index + 1}`;
+        
+        return `      <qti-assessment-item-ref identifier="${questionId}" href="${questionId}.xml">
+        <qti-weight identifier="SCORE" value="${question.points || 1}"/>
+      </qti-assessment-item-ref>`;
     }
 
     /**
@@ -130,6 +210,72 @@ ${choicesXml}
   </itemBody>
   <responseProcessing template="http://www.imsglobal.org/question/qti_v2p1/rptemplates/match_correct"/>
 </assessmentItem>`;
+    }
+
+    /**
+     * Generate QTI 2.2 item file
+     */
+    generateItem22(question, index) {
+        const questionId = question.id || `question_${index + 1}`;
+        const correctAnswer = question.correctAnswer || '';
+        
+        const choicesXml = question.choices.map(choice => 
+            `          <simpleChoice identifier="${choice.id}">${this.escapeXml(choice.text)}</simpleChoice>`
+        ).join('\n');
+        
+        return `<?xml version="1.0" encoding="UTF-8"?>
+<assessmentItem xmlns="http://www.imsglobal.org/xsd/imsqti_v2p2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v2p2 http://www.imsglobal.org/xsd/qti/qtiv2p2/imsqti_v2p2.xsd" identifier="${questionId}" title="Question ${index + 1}" adaptive="false" timeDependent="false">
+  <responseDeclaration identifier="RESPONSE" cardinality="single" baseType="identifier">
+    <correctResponse>
+      <value>${correctAnswer}</value>
+    </correctResponse>
+  </responseDeclaration>
+  <outcomeDeclaration identifier="SCORE" cardinality="single" baseType="float">
+    <defaultValue>
+      <value>0</value>
+    </defaultValue>
+  </outcomeDeclaration>
+  <itemBody>
+    <choiceInteraction responseIdentifier="RESPONSE" shuffle="false" maxChoices="1">
+      <prompt>${this.escapeXml(question.question)}</prompt>
+${choicesXml}
+    </choiceInteraction>
+  </itemBody>
+  <responseProcessing template="http://www.imsglobal.org/question/qti_v2p2/rptemplates/match_correct"/>
+</assessmentItem>`;
+    }
+
+    /**
+     * Generate QTI 3.0 item file
+     */
+    generateItem30(question, index) {
+        const questionId = question.id || `question_${index + 1}`;
+        const correctAnswer = question.correctAnswer || '';
+        
+        const choicesXml = question.choices.map(choice => 
+            `      <qti-simple-choice identifier="${choice.id}">${this.escapeXml(choice.text)}</qti-simple-choice>`
+        ).join('\n');
+        
+        return `<?xml version="1.0" encoding="UTF-8"?>
+<qti-assessment-item xmlns="http://www.imsglobal.org/xsd/imsqti_v3p0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.imsglobal.org/xsd/imsqti_v3p0 https://purl.imsglobal.org/spec/qti/v3p0/schema/xsd/imsqti_v3p0.xsd" identifier="${questionId}" title="Question ${index + 1}" adaptive="false" time-dependent="false">
+  <qti-response-declaration identifier="RESPONSE" cardinality="single" base-type="identifier">
+    <qti-correct-response>
+      <qti-value>${correctAnswer}</qti-value>
+    </qti-correct-response>
+  </qti-response-declaration>
+  <qti-outcome-declaration identifier="SCORE" cardinality="single" base-type="float">
+    <qti-default-value>
+      <qti-value>0</qti-value>
+    </qti-default-value>
+  </qti-outcome-declaration>
+  <qti-item-body>
+    <qti-choice-interaction response-identifier="RESPONSE" shuffle="false" max-choices="1">
+      <qti-prompt>${this.escapeXml(question.question)}</qti-prompt>
+${choicesXml}
+    </qti-choice-interaction>
+  </qti-item-body>
+  <qti-response-processing template="https://purl.imsglobal.org/spec/qti/v3p0/rptemplates/match_correct"/>
+</qti-assessment-item>`;
     }
 
     /**
@@ -351,12 +497,19 @@ ${question.choices.map(choice => `              <response_label ident="${choice.
         // Create a zip file containing the QTI files
         const zip = new JSZip();
         
-        if (this.version === '2.1') {
-            // QTI 2.1 requires separate item files
+        if (this.version === '2.1' || this.version === '2.2' || this.version === '3.0') {
+            // QTI 2.x and 3.0 require separate item files
             zip.file(`${this.assessmentId}.xml`, qtiXml);
             this.quizData.questions.forEach((q, idx) => {
                 const itemId = q.id || `question_${idx + 1}`;
-                const itemXml = this.generateItem21(q, idx);
+                let itemXml;
+                if (this.version === '2.2') {
+                    itemXml = this.generateItem22(q, idx);
+                } else if (this.version === '3.0') {
+                    itemXml = this.generateItem30(q, idx);
+                } else {
+                    itemXml = this.generateItem21(q, idx);
+                }
                 zip.file(`${itemId}.xml`, itemXml);
             });
         } else {
@@ -375,12 +528,20 @@ ${question.choices.map(choice => `              <response_label ident="${choice.
      */
     generateManifest() {
         const { title } = this.quizData;
-        const resourceType = this.version === '2.1' ? 'imsqti_xmlv2p1' : 'imsqti_xmlv1p2';
+        let resourceType = 'imsqti_xmlv1p2';
+        
+        if (this.version === '2.1') {
+            resourceType = 'imsqti_xmlv2p1';
+        } else if (this.version === '2.2') {
+            resourceType = 'imsqti_xmlv2p2';
+        } else if (this.version === '3.0') {
+            resourceType = 'imsqti_xmlv3p0';
+        }
         
         let resourceFiles = `      <file href="${this.assessmentId}.xml"/>`;
         
-        if (this.version === '2.1') {
-            // Add individual item files for QTI 2.1
+        if (this.version === '2.1' || this.version === '2.2' || this.version === '3.0') {
+            // Add individual item files for QTI 2.x and 3.0
             this.quizData.questions.forEach((q, idx) => {
                 const itemId = q.id || `question_${idx + 1}`;
                 resourceFiles += `\n      <file href="${itemId}.xml"/>`;
